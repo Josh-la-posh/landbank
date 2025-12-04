@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,19 +19,19 @@ const schema = z.object({
 
 type Values = z.infer<typeof schema>;
 
-export default function ConfirmAccountPage(){
-const searchParams = useSearchParams();
-const tokenParam = searchParams.get('token') ?? '';
-const { register, handleSubmit, setValue, formState:{ errors, isSubmitting } } = useForm<Values>({
-  resolver: zodResolver(schema),
-  defaultValues: {
-    token: tokenParam,
-    password: '',
-    confirmPassword: '',
-  },
-});
-const [error, setError] = useState<string | null>(null);
-const [success, setSuccess] = useState<string | null>(null);
+function ConfirmAccountContent(){
+  const searchParams = useSearchParams();
+  const tokenParam = searchParams.get('token') ?? '';
+  const { register, handleSubmit, setValue, formState:{ errors, isSubmitting } } = useForm<Values>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      token: tokenParam,
+      password: '',
+      confirmPassword: '',
+    },
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
 useEffect(() => {
   if (tokenParam) {
@@ -101,5 +101,13 @@ Need another code? <Link className="transition-colors text-brand hover:underline
 </AuthCard>
 </div>
 </div>
-);
+  );
+}
+
+export default function ConfirmAccountPage(){
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-secondary text-sm">Loading…</div>}>
+      <ConfirmAccountContent />
+    </Suspense>
+  );
 }

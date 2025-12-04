@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,50 +19,50 @@ const schema = z.object({
 
 type Values = z.infer<typeof schema>;
 
-export default function ResetPasswordPage(){
-const searchParams = useSearchParams();
-const tokenParam = searchParams.get('token') ?? '';
-const { register, handleSubmit, setValue, formState:{ errors, isSubmitting } } = useForm<Values>({
-  resolver: zodResolver(schema),
-  defaultValues: {
-    token: tokenParam,
-    password: '',
-    confirmPassword: '',
-  },
-});
-const [error, setError] = useState<string | null>(null);
-const [success, setSuccess] = useState<string | null>(null);
+function ResetPasswordContent(){
+  const searchParams = useSearchParams();
+  const tokenParam = searchParams.get('token') ?? '';
+  const { register, handleSubmit, setValue, formState:{ errors, isSubmitting } } = useForm<Values>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      token: tokenParam,
+      password: '',
+      confirmPassword: '',
+    },
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-useEffect(() => {
-  if (tokenParam) {
-    setValue('token', tokenParam);
-  }
-}, [setValue, tokenParam]);
-
-const onSubmit = async (values: Values) => {
-  setError(null);
-  setSuccess(null);
-  try {
-    const { data, error } = await authApi.resetPassword(values);
-
-    if (!data) {
-      setError(error || 'Unable to reset password right now.');
-      return;
+  useEffect(() => {
+    if (tokenParam) {
+      setValue('token', tokenParam);
     }
+  }, [setValue, tokenParam]);
 
-    if (!data.requestSuccessful) {
-      setError(data.message || error || 'Unable to reset password right now.');
-      return;
+  const onSubmit = async (values: Values) => {
+    setError(null);
+    setSuccess(null);
+    try {
+      const { data, error } = await authApi.resetPassword(values);
+
+      if (!data) {
+        setError(error || 'Unable to reset password right now.');
+        return;
+      }
+
+      if (!data.requestSuccessful) {
+        setError(data.message || error || 'Unable to reset password right now.');
+        return;
+      }
+
+      setSuccess(data.message || 'Password reset successful. You can now sign in.');
+    } catch (err) {
+      setError('Network error. Please try again.');
+      console.error('Reset password error:', err);
     }
+  };
 
-    setSuccess(data.message || 'Password reset successful. You can now sign in.');
-  } catch (err) {
-    setError('Network error. Please try again.');
-    console.error('Reset password error:', err);
-  }
-};
-
-return (
+  return (
 <div className="min-h-screen bg-surface-secondary flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
 <div className="w-full max-w-md">
 <AuthCard title="Choose a new password" footer={<>
@@ -102,4 +102,12 @@ Remembered your password? <Link className="transition-colors text-brand hover:un
 </div>
 </div>
 );
+}
+
+export default function ResetPasswordPage(){
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-secondary text-sm">Loading…</div>}>
+      <ResetPasswordContent />
+    </Suspense>
+  );
 }
