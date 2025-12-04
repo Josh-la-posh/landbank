@@ -1,26 +1,147 @@
 @import "tailwindcss";
 
 :root {
+  /* Light mode colors */
   --background: #ffffff;
   --foreground: #171717;
+  --brand: #e11d48; /* rose-600 */
+  --brand-hover: #be123c; /* rose-700 */
+  --brand-ink: #0a0a0a;
+  
+  /* Semantic colors - Light */
+  --surface: #ffffff;
+  --surface-secondary: #f9fafb;
+  --border: #e5e7eb;
+  --border-hover: #d1d5db;
+  --primary: #111827;
+  --secondary: #6b7280;
+  --muted: #9ca3af;
+  --shadow: rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode - manual class override with higher specificity */
+:root.dark,
+html.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --brand: #fb7185; /* rose-400 for better dark mode visibility */
+  --brand-hover: #e11d48; /* rose-600 */
+  
+  /* Semantic colors - Dark */
+  --surface: #1f2937;
+  --surface-secondary: #111827;
+  --border: #374151;
+  --border-hover: #4b5563;
+  --primary: #f9fafb;
+  --secondary: #d1d5db;
+  --muted: #9ca3af;
+  --shadow: rgba(0, 0, 0, 0.3);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-surface: var(--surface);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--muted);
+  --color-shadow: var(--shadow);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light) {
+    /* Dark mode colors */
     --background: #0a0a0a;
     --foreground: #ededed;
+    --brand: #fb7185; /* rose-400 for better dark mode visibility */
+    --brand-hover: #e11d48; /* rose-600 */
+    
+    /* Semantic colors - Dark */
+    --surface: #1f2937;
+    --surface-secondary: #111827;
+    --border: #374151;
+    --border-hover: #4b5563;
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --text-muted: #9ca3af;
+    --shadow: rgba(0, 0, 0, 0.3);
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  @apply bg-background text-foreground;
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+/* Custom Components */
+.btn {
+  @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors;
+}
+
+.btn-primary {
+  background-color: var(--brand);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--brand-hover);
+}
+
+.btn-ghost {
+  background-color: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.btn-ghost:hover {
+  background-color: var(--surface-secondary);
+}
+
+.input {
+  @apply w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors;
+  background-color: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.input:focus {
+  border-color: var(--border-hover);
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.label {
+  @apply mb-1 block text-sm font-medium;
+  color: var(--text-primary);
+}
+
+.card {
+  @apply rounded-2xl shadow-sm transition-all;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.card:hover {
+  box-shadow: 0 4px 6px -1px var(--shadow), 0 2px 4px -2px var(--shadow);
+}
+
+/* Utility classes for semantic colors */
+.text-brand { color: var(--brand); }
+.text-primary { color: var(--primary); }
+.text-secondary { color: var(--secondary); }
+.text-muted { color: var(--muted); }
+
+.bg-surface { background-color: var(--surface); }
+.bg-surface-secondary { background-color: var(--surface-secondary); }
+
+.border-border { border-color: var(--border); }
