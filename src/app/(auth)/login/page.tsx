@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import AuthCard from '@/components/AuthCard';
 import { useState } from 'react';
 import { authApi } from '@/lib/api';
+import { useRouter } from 'next/navigation';
 
 
 const schema = z.object({
@@ -18,6 +19,7 @@ type Values = z.infer<typeof schema>;
 
 
 export default function LoginPage(){
+const router = useRouter();
 const { register, handleSubmit, formState:{errors, isSubmitting} } = useForm<Values>({ resolver: zodResolver(schema) });
 const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +51,11 @@ const onSubmit = async (v: Values) => {
       localStorage.setItem('authToken', token);
     }
 
-    alert(`Welcome back, ${responseData.user?.firstName ?? v.email}!`);
+    if (responseData.user) {
+      localStorage.setItem('authUser', JSON.stringify(responseData.user));
+    }
+
+    router.push('/dashboard');
   } catch (err) {
     setError('Network error. Please check your connection and try again.');
     console.error('Login error:', err);

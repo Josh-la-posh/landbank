@@ -6,8 +6,22 @@ const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_BASE).repla
 const withBase = (endpoint: string) =>
   `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
-const defaultHeaders = {
+const defaultHeaders: Record<string, string> = {
   'Content-Type': 'application/json',
+};
+
+const isFormDataBody = (body: RequestInit['body']): body is FormData =>
+  typeof FormData !== 'undefined' && body instanceof FormData;
+
+const buildQueryString = (params?: Record<string, string | number | boolean | undefined | null>) => {
+  if (!params) return '';
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    query.append(key, String(value));
+  });
+  const qs = query.toString();
+  return qs ? `?${qs}` : '';
 };
 
 export interface LandbankResponse<T> {
@@ -28,13 +42,31 @@ export async function apiRequest<T>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   try {
+    const isFormData = isFormDataBody(options.body ?? null);
+    const mergedHeaders = new Headers();
+
+    Object.entries(defaultHeaders).forEach(([key, value]) => {
+      mergedHeaders.set(key, value);
+    });
+
+    if (options.headers instanceof Headers) {
+      options.headers.forEach((value, key) => mergedHeaders.set(key, value));
+    } else if (Array.isArray(options.headers)) {
+      options.headers.forEach(([key, value]) => mergedHeaders.set(key, value));
+    } else if (options.headers && typeof options.headers === 'object') {
+      Object.entries(options.headers as Record<string, string>).forEach(([key, value]) => {
+        mergedHeaders.set(key, value);
+      });
+    }
+
+    if (isFormData) {
+      mergedHeaders.delete('Content-Type');
+    }
+
     const config: RequestInit = {
       method: 'GET',
       ...options,
-      headers: {
-        ...defaultHeaders,
-        ...(options.headers || {}),
-      },
+      headers: mergedHeaders,
     };
 
     const response = await fetch(withBase(endpoint), config);
@@ -103,6 +135,55 @@ export interface ResendConfirmationPayload {
   email: string;
 }
 
+export interface GetAdsParams {
+  merchantCode: string;
+  adId?: string;
+  pageNumber?: string | number;
+  pageSize?: string | number;
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+export interface BusinessProfile {
+  dob: string | null;
+  nationality: string | null;
+  role: string | null;
+  merchantCode: string;
+  percentOfBusiness: number | null;
+  identificationType: string | null;
+  tradingName: string | null;
+  businessDescription: string | null;
+  identityNumber: string | null;
+  merchantAddress: string | null;
+  rcNumber: string | null;
+  legalBusinessName: string | null;
+  countryCode: string | null;
+  incorporationDate: string | null;
+  businessCommencementDate: string | null;
+  ownershipType: string | null;
+  staffStrength: number | null;
+  numberOfLocations: number | null;
+  industry: string | null;
+  industryCategory: string | null;
+  website: string | null;
+  disputeEmail: string | null;
+  supportEmail: string | null;
+  contactEmail: string | null;
+  merchantAddressStatus: boolean | null;
+  legalBusinessNameStatus: boolean | null;
+  countryCodeStatus: boolean | null;
+  industryStatus: boolean | null;
+  industryCategoryStatus: boolean | null;
+  rcNumberStatus: boolean | null;
+  incorporationDateStatus: boolean | null;
+  businessCommencementDateStatus: boolean | null;
+  ownershipTypeStatus: boolean | null;
+  staffStrengthStatus: boolean | null;
+  numberOfLocationsStatus: boolean | null;
+  websiteStatus: boolean | null;
+  ads: unknown[] | null;
+  status: boolean | null;
+}
+
 // Auth API functions
 export const authApi = {
   login: (payload: LoginPayload) =>
@@ -145,6 +226,32 @@ export const authApi = {
     apiRequest<LandbankResponse<null>>('/Account/logout', {
       method: 'PUT',
     }),
+};
+
+export const adsApi = {
+  create: (payload: FormData, token?: string) =>
+    apiRequest<LandbankResponse<unknown>>('/ads', {
+      method: 'POST',
+      body: payload,
+      headers: token ? { Authorization: token } : undefined,
+    }),
+
+  list: (params: GetAdsParams, token?: string) =>
+    apiRequest<LandbankResponse<unknown>>(`/ads${buildQueryString(params)}`, token ? { headers: { Authorization: token } } : undefined),
+};
+
+export const userApi = {
+  getBusinessProfile: (merchantCode: string, token?: string) =>
+    apiRequest<LandbankResponse<BusinessProfile>>(
+      `/user/business${buildQueryString({ merchantCode })}`,
+      token
+        ? {
+            headers: {
+              Authorization: token,
+            },
+          }
+        : undefined
+    ),
 };
 
 // Land API functions
