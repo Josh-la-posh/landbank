@@ -12,7 +12,7 @@ export default function LandCard({ title, price, size, location, featured }: Pro
     return (
         <article className="card overflow-hidden group">
             <div className="relative h-44 w-full">
-                <Image src="/images/hero.jpg" alt={title} fill className="object-cover"/>
+                <Image src="/images/oip.webp" alt={title} fill className="object-cover"/>
                 {featured && (
                     <span className="absolute left-3 top-3 rounded-full text-white text-[10px] px-2 py-1 font-medium bg-brand">FEATURED</span>
                 )}

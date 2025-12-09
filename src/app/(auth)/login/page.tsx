@@ -55,6 +55,8 @@ const onSubmit = async (v: Values) => {
       localStorage.setItem('authUser', JSON.stringify(responseData.user));
     }
 
+    window.dispatchEvent(new CustomEvent('landbank:auth-changed', { detail: { token } }));
+
     router.push('/dashboard');
   } catch (err) {
     setError('Network error. Please check your connection and try again.');
