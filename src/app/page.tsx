@@ -1,15 +1,57 @@
+import { unstable_noStore as noStore } from 'next/cache';
 import HeroSearch from '@/components/HeroSearch';
 import LandCard from '@/components/LandCard';
+import ListingExplorer from '@/components/ListingExplorer';
+import { adsApi } from '@/lib/api';
+import { mapToListingCards, normalizeAdsPayload, type ListingCard } from '@/lib/ads';
 
+async function fetchFeaturedListings(): Promise<ListingCard[]> {
+  try {
+    const { data } = await adsApi.list({
+      merchantCode: '',
+      pageNumber: 1,
+      pageSize: 3,
+      status: 'ACTIVE',
+      verification: 'VERIFIED',
+      isFeatured: 'YES',
+    });
 
-const featured = [
-{ title: 'Prime 2.5 Acres – Lekki Free Trade Zone', price: '₦90,000,000', size: '2.5 acres', location: 'Ibeju-Lekki, Lagos', featured: true },
-{ title: 'Commercial Plot – Airport Road', price: '₦45,000,000', size: '1200 sqm', location: 'Abuja, FCT', featured: true },
-{ title: 'Farmland – Irrigated', price: '₦8,500,000', size: '10 hectares', location: 'Ilorin, Kwara', featured: true },
-];
+    if (!data || !data.requestSuccessful || !data.responseData) {
+      return [];
+    }
 
+    return mapToListingCards(normalizeAdsPayload(data.responseData));
+  } catch (error) {
+    console.error('Unable to load featured listings', error);
+    return [];
+  }
+}
 
-export default function Home(){
+async function fetchInitialListings(): Promise<ListingCard[]> {
+  try {
+    const { data } = await adsApi.list({
+      merchantCode: '',
+      pageNumber: 1,
+      pageSize: 9,
+      status: 'ACTIVE',
+      verification: 'VERIFIED',
+    });
+
+    if (!data || !data.requestSuccessful || !data.responseData) {
+      return [];
+    }
+
+    return mapToListingCards(normalizeAdsPayload(data.responseData));
+  } catch (error) {
+    console.error('Unable to load listings', error);
+    return [];
+  }
+}
+
+export default async function Home(){
+  noStore();
+  const featuredListings = await fetchFeaturedListings();
+  const initialListings = await fetchInitialListings();
   return (
     <>
       {/* Hero - Dramatic gradient background with mesh pattern */}
@@ -85,7 +127,7 @@ export default function Home(){
               <p className="text-secondary">Handpicked premium listings</p>
             </div>
             <a 
-              href="/lands" 
+              href="/featured" 
               className="group inline-flex items-center gap-2 text-sm font-medium transition-colors text-brand hover:text-rose-700 dark:hover:text-rose-300"
             >
               View all
@@ -94,11 +136,40 @@ export default function Home(){
               </svg>
             </a>
           </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.map((l, i) => (<LandCard key={i} {...l} />))}
-          </div>
+          {featuredListings.length ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredListings.map((land) => (
+                <LandCard
+                  key={land.id}
+                  title={land.title}
+                  price={land.price}
+                  size={land.size}
+                  location={land.location}
+                  featured={land.featured}
+                  imageUrl={land.imageUrl}
+                  merchantCode={land.merchantCode}
+                  merchantName={land.merchantName}
+                  status={land.status}
+                  propertyType={land.propertyType}
+                  landType={land.landType}
+                  verification={land.verification}
+                  href={`/lands/${land.id}`}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border/60 bg-surface p-10 text-center text-secondary">
+              No advertisements have been published yet. Please check back soon.
+            </div>
+          )}
         </div>
       </section>
+
+      <ListingExplorer
+        initialListings={initialListings}
+        initialFilters={{ status: 'ACTIVE', verification: 'VERIFIED', pageSize: '9' }}
+        showViewAll={true}
+      />
 
       {/* Neighbouring lands - Gradient accent section */}
       <section className="relative py-16 md:py-24 overflow-hidden">

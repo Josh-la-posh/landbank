@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,6 +22,7 @@ type Values = z.infer<typeof schema>;
 
 
 export default function RegisterPage(){
+const router = useRouter();
 const { register, handleSubmit, formState:{errors, isSubmitting} } = useForm<Values>({ resolver: zodResolver(schema) });
 const [error, setError] = useState<string | null>(null);
 const [success, setSuccess] = useState<string | null>(null);
@@ -42,7 +44,13 @@ const onSubmit = async (v: Values) => {
       return;
     }
 
-    setSuccess(data.message || `Welcome ${v.contactFirstName}! Please confirm your email to continue.`);
+    // Successfully registered - route to confirm account page
+    setSuccess(data.message || `Welcome ${v.contactFirstName}! Please check your email to confirm your account.`);
+    
+    // Navigate to confirm account page after brief delay to show success message
+    setTimeout(() => {
+      router.push('/confirm-account');
+    }, 1500);
   } catch (err) {
     setError('Network error. Please check your connection and try again.');
     console.error('Registration error:', err);

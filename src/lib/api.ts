@@ -17,7 +17,7 @@ const buildQueryString = (params?: Record<string, string | number | boolean | un
   if (!params) return '';
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === '') return;
+    if (value === undefined || value === null) return;
     query.append(key, String(value));
   });
   const qs = query.toString();
@@ -140,6 +140,14 @@ export interface GetAdsParams {
   adId?: string;
   pageNumber?: string | number;
   pageSize?: string | number;
+  verification?: string;
+  landSizeUnit?: string;
+  landType?: string;
+  propertyType?: string;
+  isFeatured?: string;
+  status?: string;
+  city?: string;
+  state?: string;
   [key: string]: string | number | boolean | null | undefined;
 }
 
@@ -193,7 +201,7 @@ export const authApi = {
     }),
 
   signup: (payload: SignupPayload) =>
-    apiRequest<LandbankResponse<unknown>>('/Auth', {
+    apiRequest<LandbankResponse<unknown>>('/Auth/signup', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
@@ -222,6 +230,13 @@ export const authApi = {
       body: JSON.stringify(payload),
     }),
 
+  changePassword: (payload: { oldPassword: string; newPassword: string }, token?: string) =>
+    apiRequest<LandbankResponse<null>>('/Account/change-password', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+      headers: token ? { Authorization: token } : undefined,
+    }),
+
   logout: () =>
     apiRequest<LandbankResponse<null>>('/Account/logout', {
       method: 'PUT',
@@ -244,6 +259,105 @@ export const userApi = {
   getBusinessProfile: (merchantCode: string, token?: string) =>
     apiRequest<LandbankResponse<BusinessProfile>>(
       `/user/business${buildQueryString({ merchantCode })}`,
+      token
+        ? {
+            headers: {
+              Authorization: token,
+            },
+          }
+        : undefined
+    ),
+};
+
+export interface ComplianceDocument {
+  id: string;
+  documentType: string;
+  filePath: string;
+  link: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  status: boolean;
+}
+
+export interface ComplianceBusinessInfo {
+  dob: string | null;
+  nationality: string | null;
+  role: string | null;
+  merchantCode: string;
+  percentOfBusiness: number | null;
+  identificationType: string | null;
+  tradingName: string;
+  businessDescription: string;
+  identityNumber: string | null;
+  merchantAddress: string;
+  rcNumber: string;
+  legalBusinessName: string;
+  countryCode: string;
+  incorporationDate: string;
+  businessCommencementDate: string;
+  ownershipType: string;
+  staffStrength: number;
+  numberOfLocations: number;
+  industry: string | null;
+  industryCategory: string | null;
+  website: string;
+  disputeEmail: string;
+  supportEmail: string;
+  contactEmail: string;
+  merchantAddressStatus: boolean;
+  legalBusinessNameStatus: boolean;
+  countryCodeStatus: boolean;
+  industryStatus: boolean;
+  industryCategoryStatus: boolean;
+  rcNumberStatus: boolean;
+  incorporationDateStatus: boolean;
+  businessCommencementDateStatus: boolean;
+  ownershipTypeStatus: boolean;
+  staffStrengthStatus: boolean;
+  numberOfLocationsStatus: boolean;
+  websiteStatus: boolean;
+  status: boolean;
+}
+
+export interface ComplianceOwner {
+  id: string;
+  firstName: string;
+  lastName: string;
+  address: string;
+  occupation: string;
+  mobile: string;
+  dob: string;
+  nationality: string;
+  percentOfBusiness: number;
+  role: string;
+  verificationType: string;
+  verificationNumber: string;
+  bvn: string;
+}
+
+export interface ComplianceData {
+  id: number;
+  merchantCode: string;
+  merchantName: string;
+  documents: ComplianceDocument[];
+  businessInfo: ComplianceBusinessInfo;
+  financialInfo: Record<string, unknown>;
+  owners: ComplianceOwner[];
+  progress: number;
+  dataProtectionPolicy: boolean;
+  prohibitedActivitiesDeclaration: string | null;
+  status: string;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  validationReference: string | null;
+  verificationComment: string | null;
+}
+
+export const complianceApi = {
+  getCompliance: (token?: string) =>
+    apiRequest<LandbankResponse<ComplianceData>>(
+      '/compliance',
       token
         ? {
             headers: {

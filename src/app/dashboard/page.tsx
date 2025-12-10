@@ -119,7 +119,6 @@ const quickActions: QuickAction[] = [
 ];
 
 const accountDetails: AccountDetail[] = [
-  { label: 'Merchant code', value: 'MOH4f30bd6' },
   { label: 'Primary email', value: 'mohammedola1234@gmail.com' },
   { label: 'Phone number', value: '+234 813 832 9684' },
 ];
@@ -223,23 +222,6 @@ export default function DashboardPage() {
                     <button className="btn btn-outline">Open</button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm text-secondary">Handpicked for you</p>
-                <h2 className="text-lg font-semibold text-primary">Fresh listings that match your interest</h2>
-              </div>
-              <Link href="/lands" className="text-sm font-medium text-brand hover:underline">
-                See all
-              </Link>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {recommended.map((card) => (
-                <LandCard key={card.title} {...card} />
               ))}
             </div>
           </div>

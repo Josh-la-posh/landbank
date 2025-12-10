@@ -24,7 +24,7 @@ async function fetchAllListings(): Promise<ListingCard[]> {
   }
 }
 
-export default async function LandsPage() {
+export default async function BrowsePage() {
   noStore();
   const initialListings = await fetchAllListings();
 
@@ -43,7 +43,7 @@ export default async function LandsPage() {
             Discover Your Perfect Land
           </h1>
           <p className="text-lg text-secondary max-w-3xl mx-auto">
-            Explore our complete collection of verified land listings. Use advanced filters to find exactly what you&apos;re looking for.
+            Explore our complete collection of verified land listings. Use advanced filters to find exactly what you're looking for.
           </p>
         </div>
       </section>
