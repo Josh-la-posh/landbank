@@ -1,45 +1,72 @@
-import { notFound } from 'next/navigation';
+'use client';
+
+import { notFound, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { unstable_noStore as noStore } from 'next/cache';
+import { useEffect, useState } from 'react';
 import { userApi } from '@/lib/api';
+import { getAuthToken } from '@/lib/auth';
 import type { BusinessProfile } from '@/lib/api';
 
-async function fetchBusinessProfile(merchantCode: string): Promise<{ profile: BusinessProfile | null; isUnauthorized: boolean }> {
-  try {
-    console.log('🏢 Fetching business profile for:', merchantCode);
-    
-    const { data, status } = await userApi.getBusinessProfile(merchantCode);
+export default function ProfilePage() {
+  const params = useParams();
+  const merchantCode = params.merchantCode as string;
+  const [profile, setProfile] = useState<BusinessProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    console.log('📡 Business API response:', data, 'Status:', status);
+  useEffect(() => {
+    async function fetchBusinessProfile() {
+      try {
+        console.log('🏢 Fetching business profile for:', merchantCode);
+        
+        // Get the authentication token
+        const token = getAuthToken();
+        console.log('🔑 Token available:', !!token);
 
-    // Check for 401 Unauthorized
-    if (status === 401) {
-      console.log('🔒 Unauthorized access - user needs to log in');
-      return { profile: null, isUnauthorized: true };
+        const { data, status } = await userApi.getBusinessProfile(merchantCode, token || undefined);
+
+        console.log('📡 Business API response:', data, 'Status:', status);
+
+        // Check for 401 Unauthorized
+        if (status === 401) {
+          console.log('🔒 Unauthorized access - user needs to log in');
+          setIsUnauthorized(true);
+          setIsLoading(false);
+          return;
+        }
+
+        if (!data || !data.requestSuccessful || !data.responseData) {
+          console.log('⚠️ No valid business profile data');
+          setError(data?.message || 'Unable to load business profile');
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('✅ Business profile fetched successfully');
+        setProfile(data.responseData);
+        setIsLoading(false);
+      } catch (err) {
+        console.error('❌ Unable to fetch business profile', err);
+        setError('Failed to load business profile. Please try again.');
+        setIsLoading(false);
+      }
     }
 
-    if (!data || !data.requestSuccessful || !data.responseData) {
-      console.log('⚠️ No valid business profile data');
-      return { profile: null, isUnauthorized: false };
-    }
+    fetchBusinessProfile();
+  }, [merchantCode]);
 
-    console.log('✅ Business profile fetched successfully');
-    return { profile: data.responseData, isUnauthorized: false };
-  } catch (error) {
-    console.error('❌ Unable to fetch business profile', error);
-    return { profile: null, isUnauthorized: false };
+  // Loading state
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-surface-secondary flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-brand border-t-transparent mb-4"></div>
+          <p className="text-secondary">Loading profile...</p>
+        </div>
+      </main>
+    );
   }
-}
-
-export default async function ProfilePage({ params }: { params: Promise<{ merchantCode: string }> }) {
-  noStore();
-  const { merchantCode } = await params;
-  
-  console.log('🔍 Profile Page - merchantCode:', merchantCode);
-  
-  const { profile, isUnauthorized } = await fetchBusinessProfile(merchantCode);
-
-  console.log('📊 Profile data:', profile ? 'found' : 'null', 'Unauthorized:', isUnauthorized);
 
   // If unauthorized, show login prompt
   if (isUnauthorized) {
@@ -68,8 +95,32 @@ export default async function ProfilePage({ params }: { params: Promise<{ mercha
     );
   }
 
+  // If error, show error message
+  if (error) {
+    return (
+      <main className="min-h-screen bg-surface-secondary flex items-center justify-center p-4">
+        <div className="card p-8 md:p-12 max-w-2xl text-center">
+          <div className="mx-auto w-20 h-20 mb-6 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <svg className="w-10 h-10 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h1 className="text-3xl font-bold text-primary mb-4">Unable to Load Profile</h1>
+          <p className="text-lg text-secondary mb-8">{error}</p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <button onClick={() => window.location.reload()} className="btn btn-primary">
+              Try Again
+            </button>
+            <Link href={`/merchant/${merchantCode}/listings`} className="btn btn-ghost">
+              View Listings Instead
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (!profile) {
-    console.log('❌ No profile found, showing 404');
     notFound();
   }
 

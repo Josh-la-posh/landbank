@@ -9,10 +9,13 @@ import {
   Loader2,
   Mail,
   MapPin,
+  Phone,
   ShieldCheck,
+  UserCircle,
   UserRound,
 } from 'lucide-react';
 import { BusinessProfile, userApi } from '@/lib/api';
+import { getAuthUser, type AuthUser } from '@/lib/auth';
 
 const formatDate = (value?: string | null) => {
   if (!value) return 'Not provided';
@@ -30,10 +33,12 @@ const humanize = (value?: string | null) => {
 };
 
 export default function ProfilePage() {
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [merchantCode, setMerchantCode] = useState<string | null>(null);
+  const [needsCompliance, setNeedsCompliance] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,11 +48,12 @@ export default function ProfilePage() {
 
       setLoading(true);
       setError(null);
+      setNeedsCompliance(false);
 
-      const storedUser = localStorage.getItem('authUser');
-      const storedToken = localStorage.getItem('authToken') || undefined;
-
-      if (!storedUser) {
+      // Get user from localStorage
+      const authUser = getAuthUser();
+      
+      if (!authUser) {
         if (!cancelled) {
           setError('You are not signed in. Please log in to view your profile.');
           setLoading(false);
@@ -55,37 +61,41 @@ export default function ProfilePage() {
         return;
       }
 
+      // Set user data
+      setUser(authUser);
+      setMerchantCode(authUser.userCode);
+
+      // Try to fetch business profile
+      const storedToken = localStorage.getItem('authToken') || undefined;
+
       try {
-        const parsed = JSON.parse(storedUser);
-        const code: string | null = parsed?.userCode ?? null;
-        setMerchantCode(code);
-
-        if (!code) {
-          if (!cancelled) {
-            setError('Your account is missing a merchant code. Please contact support.');
-            setLoading(false);
-          }
-          return;
-        }
-
-        const { data, error } = await userApi.getBusinessProfile(code, storedToken);
+        const { data, error } = await userApi.getBusinessProfile(authUser.userCode, storedToken);
 
         if (cancelled) return;
 
         if (!data) {
+          // Network error
           setError(error || 'Unable to connect to the profile service.');
           setProfile(null);
-        } else if (!data.requestSuccessful || !data.responseData) {
-          setError(data.message || 'We could not load your business profile.');
-          setProfile(null);
-        } else {
+        } else if (!data.requestSuccessful) {
+          // Check if it's a compliance issue
+          if (data.message?.toLowerCase().includes('user not found') || data.responseCode === '99') {
+            setNeedsCompliance(true);
+            setProfile(null);
+            setError(null);
+          } else {
+            setError(data.message || 'We could not load your business profile.');
+            setProfile(null);
+          }
+        } else if (data.responseData) {
           setProfile(data.responseData);
           setError(null);
+          setNeedsCompliance(false);
         }
       } catch (err) {
-        console.error('Failed to parse stored auth user', err);
+        console.error('Failed to fetch business profile', err);
         if (!cancelled) {
-          setError('We could not read your saved session. Please log in again.');
+          setError('An unexpected error occurred while loading your profile.');
           setProfile(null);
         }
       } finally {
@@ -139,7 +149,7 @@ export default function ProfilePage() {
       return (
         <div className="rounded-3xl border border-border/60 bg-surface p-10 text-center">
           <Loader2 className="mx-auto h-10 w-10 animate-spin text-brand" />
-          <p className="mt-4 text-sm text-secondary">Fetching your business profile…</p>
+          <p className="mt-4 text-sm text-secondary">Fetching your profile…</p>
         </div>
       );
     }
@@ -166,6 +176,86 @@ export default function ProfilePage() {
       );
     }
 
+    // Show compliance notice if business profile not found
+    if (needsCompliance) {
+      return (
+        <div className="space-y-6">
+          {/* User Personal Details */}
+          {user && (
+            <section className="rounded-3xl border border-border/70 bg-surface shadow-lg">
+              <div className="border-b border-border/60 px-6 py-6">
+                {/* <p className="text-sm text-secondary">Personal Information</p> */}
+                <h2 className="mt-2 text-2xl font-semibold text-primary">
+                  {user.firstName} {user.lastName}
+                </h2>
+              </div>
+              <div className="grid gap-6 px-6 py-6 md:grid-cols-2">
+                <div className="rounded-2xl border border-border/60 p-5">
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-5 w-5 text-brand" />
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-secondary">Email Address</h3>
+                  </div>
+                  <p className="mt-3 text-base text-primary">{user.email}</p>
+                  {user.isEmailConfirmed ? (
+                    <span className="mt-2 inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                      <ShieldCheck className="h-3 w-3" />
+                      Verified
+                    </span>
+                  ) : (
+                    <span className="mt-2 inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                      <AlertTriangle className="h-3 w-3" />
+                      Not verified
+                    </span>
+                  )}
+                </div>
+                <div className="rounded-2xl border border-border/60 p-5">
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-5 w-5 text-brand" />
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-secondary">Phone Number</h3>
+                  </div>
+                  <p className="mt-3 text-base text-primary">{user.phoneNumber || 'Not provided'}</p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Compliance Notice */}
+          <div className="rounded-3xl border border-amber-200 bg-amber-50/80 p-8 dark:border-amber-900/40 dark:bg-amber-900/10">
+            <div className="flex items-start gap-4">
+              <Building2 className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold text-amber-900 dark:text-amber-100">
+                  Complete Your Business Profile
+                </h2>
+                <p className="mt-2 text-sm text-amber-800 dark:text-amber-200">
+                  Your business profile has not been set up yet. To list properties and access advanced marketplace features, 
+                  you need to complete the compliance process.
+                </p>
+                <div className="mt-6 space-y-3">
+                  <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">What you'll need:</h3>
+                  <ul className="ml-5 list-disc space-y-2 text-sm text-amber-800 dark:text-amber-200">
+                    <li>Business registration details (RC number)</li>
+                    <li>Trading name and legal business name</li>
+                    <li>Registered business address</li>
+                    <li>Contact information for support and disputes</li>
+                    <li>Ownership and incorporation documents</li>
+                  </ul>
+                </div>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Link href="/dashboard/ads" className="btn btn-primary">
+                    Start Compliance
+                  </Link>
+                  <Link href="/dashboard" className="btn btn-ghost">
+                    Back to Dashboard
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (!profile) {
       return (
         <div className="rounded-3xl border border-border/60 bg-surface p-10 text-center">
@@ -180,6 +270,46 @@ export default function ProfilePage() {
 
     return (
       <div className="space-y-8">
+        {/* User Personal Details */}
+        {user && (
+          <section className="rounded-3xl border border-border/70 bg-surface shadow-lg">
+            <div className="border-b border-border/60 px-6 py-6">
+              {/* <p className="text-sm text-secondary">Personal Information</p> */}
+              <h2 className="mt-2 text-2xl font-semibold text-primary">
+                {user.firstName} {user.lastName}
+              </h2>
+            </div>
+            <div className="grid gap-6 px-6 py-6 md:grid-cols-2">
+              <div className="rounded-2xl border border-border/60 p-5">
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-brand" />
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-secondary">Email Address</h3>
+                </div>
+                <p className="mt-3 text-base text-primary">{user.email}</p>
+                {user.isEmailConfirmed ? (
+                  <span className="mt-2 inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                    <ShieldCheck className="h-3 w-3" />
+                    Verified
+                  </span>
+                ) : (
+                  <span className="mt-2 inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                    <AlertTriangle className="h-3 w-3" />
+                    Not verified
+                  </span>
+                )}
+              </div>
+              <div className="rounded-2xl border border-border/60 p-5">
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-brand" />
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-secondary">Phone Number</h3>
+                </div>
+                <p className="mt-3 text-base text-primary">{user.phoneNumber || 'Not provided'}</p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Business Profile Section */}
         <section className="rounded-3xl border border-border/70 bg-surface shadow-lg">
           <div className="border-b border-border/60 px-6 py-6">
             <p className="text-sm text-secondary">Business profile</p>
@@ -316,17 +446,15 @@ export default function ProfilePage() {
     <main className="min-h-screen bg-surface-secondary">
       <div className="mx-auto max-w-6xl px-4 py-10 space-y-8">
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-secondary">Account</p>
-          <h1 className="text-3xl font-semibold text-primary">My Profile</h1>
           <p className="text-sm text-muted">
-            Review the business information tied to your merchant code. Keep these records accurate to unlock more marketplace features.
+            Review your business information. Keep these records accurate to unlock more marketplace features.
           </p>
         </div>
-        {merchantCode && (
+        {/* {merchantCode && (
           <div className="rounded-2xl border border-border/60 bg-surface px-4 py-2 text-xs font-medium uppercase tracking-wide text-secondary">
             Signed in as: {merchantCode}
           </div>
-        )}
+        )} */}
         {renderState()}
       </div>
     </main>

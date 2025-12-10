@@ -168,6 +168,7 @@ export default async function Home(){
       <ListingExplorer
         initialListings={initialListings}
         initialFilters={{ status: 'ACTIVE', verification: 'VERIFIED', pageSize: '9' }}
+        maxItems={6}
         showViewAll={true}
       />
 

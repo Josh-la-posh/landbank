@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
 import { useEffect, useRef, useState } from 'react';
 import { authApi } from '@/lib/api';
+import { isAuthenticated, clearAuth } from '@/lib/auth';
 import { Bell, ChevronDown, Heart, Lock, LogOut, Megaphone, Menu, UserRound, X } from 'lucide-react';
 
 
@@ -27,8 +28,7 @@ export default function Navbar(){
     useEffect(() => {
         const syncAuthState = () => {
             try {
-                const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-                setHasSession(Boolean(token));
+                setHasSession(isAuthenticated());
             } catch (error) {
                 console.error('Unable to read auth token from storage:', error);
             }
@@ -59,7 +59,7 @@ export default function Navbar(){
         } catch (error) {
             console.error('Logout error:', error);
         } finally {
-            localStorage.removeItem('authToken');
+            clearAuth();
             setHasSession(false);
             setLoggingOut(false);
             setAccountOpen(false);

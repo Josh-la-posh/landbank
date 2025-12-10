@@ -1,11 +1,12 @@
 'use client';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import AuthCard from '@/components/AuthCard';
+import AuthSuccess from '@/components/AuthSuccess';
 import { authApi } from '@/lib/api';
 
 const schema = z.object({
@@ -20,6 +21,7 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 
 function ConfirmAccountContent(){
+  const router = useRouter();
   const searchParams = useSearchParams();
   const tokenParam = searchParams.get('token') ?? '';
   const { register, handleSubmit, setValue, formState:{ errors, isSubmitting } } = useForm<Values>({
@@ -31,7 +33,8 @@ function ConfirmAccountContent(){
     },
   });
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [isConfirmed, setIsConfirmed] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
 useEffect(() => {
   if (tokenParam) {
@@ -41,7 +44,6 @@ useEffect(() => {
 
 const onSubmit = async (values: Values) => {
   setError(null);
-  setSuccess(null);
   try {
     const { data, error } = await authApi.confirmAccount(values);
 
@@ -55,7 +57,13 @@ const onSubmit = async (values: Values) => {
       return;
     }
 
-    setSuccess(data.message || 'Account confirmed successfully. You can now sign in.');
+    setSuccessMessage(data.message || 'Account confirmed successfully. You can now sign in.');
+    setIsConfirmed(true);
+    
+    // Redirect to login after 3 seconds
+    setTimeout(() => {
+      router.push('/login?confirmed=true');
+    }, 3000);
   } catch (err) {
     setError('Network error. Please try again.');
     console.error('Confirm account error:', err);
@@ -65,6 +73,14 @@ const onSubmit = async (values: Values) => {
 return (
 <div className="min-h-screen bg-surface-secondary flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
 <div className="w-full max-w-md">
+{isConfirmed ? (
+  <AuthSuccess
+    title="Account Confirmed!"
+    message={successMessage}
+    redirectUrl="/login?confirmed=true"
+    redirectText="Go to login now"
+  />
+) : (
 <AuthCard title="Confirm your account" footer={<>
 Need another code? <Link className="transition-colors text-brand hover:underline" href="/resend-confirmation">Resend confirmation</Link>
 </>}>
@@ -72,11 +88,6 @@ Need another code? <Link className="transition-colors text-brand hover:underline
 {error && (
   <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-md text-sm">
     {error}
-  </div>
-)}
-{success && (
-  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-md text-sm">
-    {success}
   </div>
 )}
 <div>
@@ -99,6 +110,7 @@ Need another code? <Link className="transition-colors text-brand hover:underline
 </button>
 </form>
 </AuthCard>
+)}
 </div>
 </div>
   );

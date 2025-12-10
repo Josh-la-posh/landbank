@@ -1,5 +1,64 @@
 import Link from 'next/link';
 
+const boostPackages = [
+  {
+    name: 'Homepage Spotlight',
+    price: '₦10,000',
+    duration: '7 days',
+    description: 'Your property featured on the homepage carousel',
+    features: [
+      'Prime homepage placement',
+      'Seen by all visitors',
+      'Eye-catching carousel card',
+      'Up to 5x more views',
+    ],
+    icon: '🌟',
+    popular: false,
+  },
+  {
+    name: 'Category Top',
+    price: '₦5,000',
+    duration: '7 days',
+    description: 'Rank first in your category search results',
+    features: [
+      'Top position in category',
+      'Priority in search filters',
+      'Category badge highlight',
+      'Extended visibility',
+    ],
+    icon: '🎯',
+    popular: true,
+  },
+  {
+    name: 'Featured Badge',
+    price: '₦3,000',
+    duration: '14 days',
+    description: 'Eye-catching featured badge on your listing',
+    features: [
+      'Distinctive featured badge',
+      'Stands out in results',
+      'Longer duration',
+      'Mobile optimized',
+    ],
+    icon: '⭐',
+    popular: false,
+  },
+  {
+    name: 'Weekend Boost',
+    price: '₦8,000',
+    duration: '3 days',
+    description: 'Maximum visibility during peak weekend traffic',
+    features: [
+      'Friday-Sunday spotlight',
+      'Peak traffic exposure',
+      'Homepage & category top',
+      'Social media feature',
+    ],
+    icon: '🚀',
+    popular: false,
+  },
+];
+
 const plans = [
   {
     name: 'Starter',
@@ -91,7 +150,95 @@ export default function PricingPage() {
         </div>
       </section>
 
+      {/* Boost Your Listings Section */}
+      <section className="border-b border-border/60 bg-surface py-16">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand/10 text-brand text-xs font-semibold uppercase tracking-wide mb-4">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+              </svg>
+              Premium Visibility
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-primary mb-3">Boost Your Listings</h2>
+            <p className="text-lg text-secondary max-w-2xl mx-auto">
+              Want extra visibility for specific listings? Purchase individual boosts to feature your properties and get more inquiries faster.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {boostPackages.map((boost) => (
+              <article
+                key={boost.name}
+                className={`relative rounded-2xl border ${
+                  boost.popular 
+                    ? 'border-brand/50 bg-gradient-to-br from-brand/5 to-transparent shadow-lg ring-2 ring-brand/20' 
+                    : 'border-border/70 bg-surface hover:border-brand/30'
+                } p-6 transition-all hover:shadow-xl`}
+              >
+                {boost.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-brand text-white text-xs font-bold rounded-full">
+                    MOST POPULAR
+                  </div>
+                )}
+                
+                <div className="text-center mb-4">
+                  <div className="text-4xl mb-3">{boost.icon}</div>
+                  <h3 className="text-xl font-bold text-primary mb-1">{boost.name}</h3>
+                  <p className="text-sm text-muted mb-3">{boost.description}</p>
+                </div>
+
+                <div className="text-center mb-4 pb-4 border-b border-border/60">
+                  <div className="text-3xl font-bold text-brand mb-1">{boost.price}</div>
+                  <div className="text-sm text-secondary">{boost.duration}</div>
+                </div>
+
+                <ul className="space-y-2 mb-6">
+                  {boost.features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2 text-sm text-primary">
+                      <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                      </svg>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button className={`w-full py-3 px-4 rounded-lg font-semibold transition-all ${
+                  boost.popular
+                    ? 'bg-brand text-white hover:bg-brand/90 shadow-md'
+                    : 'bg-surface-secondary text-primary border border-border hover:bg-brand hover:text-white hover:border-brand'
+                }`}>
+                  Select Boost
+                </button>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-10 text-center">
+            <div className="inline-flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl border border-border/60 bg-surface-secondary/60">
+              <svg className="w-8 h-8 text-brand flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <div className="text-left">
+                <p className="font-semibold text-primary">Need multiple boosts?</p>
+                <p className="text-sm text-secondary">Contact our sales team for custom packages and bulk discounts</p>
+              </div>
+              <Link href="/contact" className="btn btn-primary whitespace-nowrap">
+                Get Custom Quote
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Subscription Plans Section */}
       <section className="mx-auto max-w-6xl px-4 py-12">
+        <div className="text-center mb-10">
+          <p className="text-sm uppercase tracking-wide text-secondary">Monthly Plans</p>
+          <h2 className="text-3xl font-bold text-primary mb-2">Subscription Options</h2>
+          <p className="text-muted">Choose a plan that fits your listing volume</p>
+        </div>
         <div className="grid gap-6 md:grid-cols-3">
           {plans.map((plan) => (
             <article

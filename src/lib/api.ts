@@ -24,6 +24,39 @@ const buildQueryString = (params?: Record<string, string | number | boolean | un
   return qs ? `?${qs}` : '';
 };
 
+// Handle 401 Unauthorized errors globally
+function handle401Error() {
+  // Only handle 401 in browser environment
+  if (typeof window === 'undefined') return;
+  
+  // Don't redirect if already on auth pages
+  const currentPath = window.location.pathname;
+  const authPages = ['/login', '/register', '/forgot-password', '/reset-password', '/confirm-account'];
+  if (authPages.some(page => currentPath.startsWith(page))) return;
+  
+  // Clear auth data
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('authUser');
+  
+  // Store the current page to redirect back after login
+  const returnUrl = window.location.pathname + window.location.search;
+  if (returnUrl !== '/') {
+    sessionStorage.setItem('returnUrl', returnUrl);
+  }
+  
+  // Show error message
+  const errorEvent = new CustomEvent('auth:unauthorized', {
+    detail: { message: 'Your session has expired. Please login again.' }
+  });
+  window.dispatchEvent(errorEvent);
+  
+  // Redirect to login after a brief delay to show the message
+  setTimeout(() => {
+    window.location.href = '/login?expired=true';
+  }, 1500);
+}
+
 export interface LandbankResponse<T> {
   requestSuccessful: boolean;
   responseData: T | null;
@@ -73,6 +106,11 @@ export async function apiRequest<T>(
     const data = await response
       .json()
       .catch(() => null);
+
+    // Handle 401 Unauthorized globally
+    if (response.status === 401) {
+      handle401Error();
+    }
 
     return {
       data,

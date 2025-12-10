@@ -1,18 +1,18 @@
+'use client';
+
 import LandCard from '@/components/LandCard';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { BellRing, Heart, Lock, MapPin, Megaphone, UserRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { getAuthUser } from '@/lib/auth';
+import type { AuthUser } from '@/lib/auth';
 
 type QuickAction = {
   title: string;
   description: string;
   href: string;
   icon: LucideIcon;
-};
-
-type AccountDetail = {
-  label: string;
-  value: string;
 };
 
 type AlertCard = {
@@ -118,11 +118,6 @@ const quickActions: QuickAction[] = [
   },
 ];
 
-const accountDetails: AccountDetail[] = [
-  { label: 'Primary email', value: 'mohammedola1234@gmail.com' },
-  { label: 'Phone number', value: '+234 813 832 9684' },
-];
-
 const alerts: AlertCard[] = [
   {
     title: 'Price drop on your saved Ikoyi lot',
@@ -137,17 +132,56 @@ const alerts: AlertCard[] = [
 ];
 
 export default function DashboardPage() {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Get user data from localStorage
+    const authUser = getAuthUser();
+    setUser(authUser);
+    setIsLoading(false);
+  }, []);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-surface-secondary flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-brand border-t-transparent mb-4"></div>
+          <p className="text-secondary">Loading dashboard...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Get user's first name or fallback
+  const firstName = user?.firstName || 'User';
+  const userEmail = user?.email || 'Not available';
+  const userPhone = user?.phoneNumber || 'Not available';
+  const isEmailConfirmed = user?.isEmailConfirmed || false;
+
   return (
     <main className="min-h-screen bg-surface-secondary">
       <section className="relative isolate overflow-hidden border-b border-border/60 bg-linear-to-br from-rose-50 via-white to-rose-50/50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:py-16">
           <p className="text-sm text-secondary">Discovery dashboard</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-primary sm:text-4xl">
-            Welcome back, Mohammed
+            Welcome back, {firstName}
           </h1>
           <p className="mt-3 max-w-2xl text-base text-muted">
             Pick up where you left off. Your saved searches, recommended plots, and next steps are curated below.
           </p>
+          {!isEmailConfirmed && (
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-700 dark:text-amber-300">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+              </svg>
+              Please verify your email address to unlock all features.
+              <Link href="/resend-confirmation" className="font-semibold underline hover:no-underline">
+                Resend confirmation
+              </Link>
+            </div>
+          )}
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href="/dashboard/ads" className="btn btn-primary">
               Create a new ad
@@ -239,12 +273,37 @@ export default function DashboardPage() {
               </div>
             </div>
             <dl className="mt-4 space-y-3">
-              {accountDetails.map((item) => (
+              {[
+                { label: 'Primary email', value: userEmail },
+                { label: 'Phone number', value: userPhone },
+              ].map((item) => (
                 <div key={item.label} className="rounded-2xl border border-border/60 px-4 py-3">
                   <dt className="text-xs uppercase tracking-wide text-secondary">{item.label}</dt>
                   <dd className="text-sm font-medium text-primary">{item.value}</dd>
                 </div>
               ))}
+              {user && (
+                <div className="rounded-2xl border border-border/60 px-4 py-3">
+                  <dt className="text-xs uppercase tracking-wide text-secondary">Account Status</dt>
+                  <dd className="text-sm font-medium flex items-center gap-2">
+                    {isEmailConfirmed ? (
+                      <>
+                        <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                        </svg>
+                        <span className="text-green-600 dark:text-green-400">Verified</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                        </svg>
+                        <span className="text-amber-600 dark:text-amber-400">Pending Verification</span>
+                      </>
+                    )}
+                  </dd>
+                </div>
+              )}
             </dl>
             <Link href="/dashboard/profile" className="btn btn-ghost mt-4 w-full">
               Update profile

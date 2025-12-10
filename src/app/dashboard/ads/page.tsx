@@ -202,20 +202,21 @@ useEffect(() => {
       return;
     }
 
-    setGeocodingStatus('loading');
-    setGeocodingError(null);
+    setCoordinates({ latitude: 3, longitude: 15 });
+    // setGeocodingStatus('loading');
+    // setGeocodingError(null);
 
-    const result = await geocodeAddress(address, city, state, country);
+    // const result = await geocodeAddress(address, city, state, country);
 
-    if (result.coordinates) {
-      setCoordinates(result.coordinates);
-      setGeocodingStatus('success');
-      setGeocodingError(null);
-    } else {
-      setCoordinates(null);
-      setGeocodingStatus('error');
-      setGeocodingError(result.error || 'Unable to find coordinates for this address');
-    }
+    // if (result.coordinates) {
+    //   setCoordinates(result.coordinates);
+    //   setGeocodingStatus('success');
+    //   setGeocodingError(null);
+    // } else {
+    //   setCoordinates(null);
+    //   setGeocodingStatus('error');
+    //   setGeocodingError(result.error || 'Unable to find coordinates for this address');
+    // }
   }, 800);
 
   performGeocode();

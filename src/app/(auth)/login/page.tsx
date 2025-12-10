@@ -4,9 +4,10 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import AuthCard from '@/components/AuthCard';
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { authApi } from '@/lib/api';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { setAuthToken, setAuthUser } from '@/lib/auth';
 
 
 const schema = z.object({
@@ -18,14 +19,28 @@ password: z.string().min(6, 'Password must be at least 6 characters'),
 type Values = z.infer<typeof schema>;
 
 
-export default function LoginPage(){
+function LoginContent(){
 const router = useRouter();
-const { register, handleSubmit, formState:{errors, isSubmitting} } = useForm<Values>({ resolver: zodResolver(schema) });
-const [error, setError] = useState<string | null>(null);
+const searchParams = useSearchParams();
+  const { register, handleSubmit, formState:{errors, isSubmitting} } = useForm<Values>({ resolver: zodResolver(schema) });
+  const [error, setError] = useState<string | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [accountConfirmed, setAccountConfirmed] = useState(false);
 
-
+useEffect(() => {
+  // Check if redirected due to session expiration
+  if (searchParams.get('expired') === 'true') {
+    setSessionExpired(true);
+  }
+  // Check if redirected after successful account confirmation
+  if (searchParams.get('confirmed') === 'true') {
+    setAccountConfirmed(true);
+  }
+}, [searchParams]);
 const onSubmit = async (v: Values) => {
   setError(null);
+  setSessionExpired(false);
+  setAccountConfirmed(false);
   try {
     const { data, error } = await authApi.login({
       email: v.email,
@@ -48,16 +63,23 @@ const onSubmit = async (v: Values) => {
       : null;
 
     if (token) {
-      localStorage.setItem('authToken', token);
+      setAuthToken(token);
     }
 
     if (responseData.user) {
-      localStorage.setItem('authUser', JSON.stringify(responseData.user));
+      setAuthUser(responseData.user);
     }
 
     window.dispatchEvent(new CustomEvent('landbank:auth-changed', { detail: { token } }));
 
-    router.push('/dashboard');
+    // Check for return URL in sessionStorage
+    const returnUrl = sessionStorage.getItem('returnUrl');
+    if (returnUrl) {
+      sessionStorage.removeItem('returnUrl');
+      router.push(returnUrl);
+    } else {
+      router.push('/dashboard');
+    }
   } catch (err) {
     setError('Network error. Please check your connection and try again.');
     console.error('Login error:', err);
@@ -72,6 +94,16 @@ return (
 Don&apos;t have an account? <Link className="transition-colors text-brand hover:underline" href="/register">Create one</Link>
 </>}>
 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+{accountConfirmed && (
+  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-md text-sm">
+    Account confirmed successfully! Please login to continue.
+  </div>
+)}
+{sessionExpired && (
+  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded-md text-sm">
+    Your session has expired. Please login again to continue.
+  </div>
+)}
 {error && (
   <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-md text-sm">
     {error}
@@ -98,4 +130,12 @@ Don&apos;t have an account? <Link className="transition-colors text-brand hover:
 </div>
 </div>
 );
+}
+
+export default function LoginPage(){
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-secondary text-sm">Loading…</div>}>
+      <LoginContent />
+    </Suspense>
+  );
 }

@@ -9,6 +9,7 @@ import { ReactNode } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ThemeToggle from '@/components/ThemeToggle';
+import AuthNotificationHandler from '@/components/AuthNotificationHandler';
 
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body className="min-h-full flex flex-col">
+        <AuthNotificationHandler />
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />

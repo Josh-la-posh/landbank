@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import AuthCard from '@/components/AuthCard';
+import AuthSuccess from '@/components/AuthSuccess';
 import { useState } from 'react';
 import { authApi } from '@/lib/api';
 
@@ -25,12 +26,12 @@ export default function RegisterPage(){
 const router = useRouter();
 const { register, handleSubmit, formState:{errors, isSubmitting} } = useForm<Values>({ resolver: zodResolver(schema) });
 const [error, setError] = useState<string | null>(null);
-const [success, setSuccess] = useState<string | null>(null);
+const [isRegistered, setIsRegistered] = useState(false);
+const [successMessage, setSuccessMessage] = useState<string>('');
 
 
 const onSubmit = async (v: Values) => {
   setError(null);
-  setSuccess(null);
   try {
     const { data, error } = await authApi.signup(v);
 
@@ -44,13 +45,14 @@ const onSubmit = async (v: Values) => {
       return;
     }
 
-    // Successfully registered - route to confirm account page
-    setSuccess(data.message || `Welcome ${v.contactFirstName}! Please check your email to confirm your account.`);
+    // Successfully registered - show success screen then route to confirm account page
+    setSuccessMessage(data.message || `Welcome ${v.contactFirstName}! Please check your email to confirm your account.`);
+    setIsRegistered(true);
     
-    // Navigate to confirm account page after brief delay to show success message
+    // Navigate to confirm account page after 3 seconds
     setTimeout(() => {
       router.push('/confirm-account');
-    }, 1500);
+    }, 3000);
   } catch (err) {
     setError('Network error. Please check your connection and try again.');
     console.error('Registration error:', err);
@@ -61,6 +63,14 @@ const onSubmit = async (v: Values) => {
 return (
 <div className="min-h-screen bg-surface-secondary flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
 <div className="w-full max-w-md">
+{isRegistered ? (
+  <AuthSuccess
+    title="Account Created Successfully!"
+    message={successMessage}
+    redirectUrl="/confirm-account"
+    redirectText="Go to confirm account now"
+  />
+) : (
 <AuthCard title="Create your account" footer={<>
 Already have an account? <Link className="transition-colors text-brand hover:underline" href="/login">Sign in</Link>
 </>}>
@@ -68,11 +78,6 @@ Already have an account? <Link className="transition-colors text-brand hover:und
 {error && (
   <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-md text-sm">
     {error}
-  </div>
-)}
-{success && (
-  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-md text-sm">
-    {success}
   </div>
 )}
 <div className="grid grid-cols-2 gap-4">
@@ -107,6 +112,7 @@ Already have an account? <Link className="transition-colors text-brand hover:und
 </button>
 </form>
 </AuthCard>
+)}
 </div>
 </div>
 );

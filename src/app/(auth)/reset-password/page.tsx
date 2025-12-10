@@ -1,11 +1,12 @@
 'use client';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import AuthCard from '@/components/AuthCard';
+import AuthSuccess from '@/components/AuthSuccess';
 import { authApi } from '@/lib/api';
 
 const schema = z.object({
@@ -20,6 +21,7 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 
 function ResetPasswordContent(){
+  const router = useRouter();
   const searchParams = useSearchParams();
   const tokenParam = searchParams.get('token') ?? '';
   const { register, handleSubmit, setValue, formState:{ errors, isSubmitting } } = useForm<Values>({
@@ -31,7 +33,8 @@ function ResetPasswordContent(){
     },
   });
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [isReset, setIsReset] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   useEffect(() => {
     if (tokenParam) {
@@ -41,7 +44,6 @@ function ResetPasswordContent(){
 
   const onSubmit = async (values: Values) => {
     setError(null);
-    setSuccess(null);
     try {
       const { data, error } = await authApi.resetPassword(values);
 
@@ -55,7 +57,13 @@ function ResetPasswordContent(){
         return;
       }
 
-      setSuccess(data.message || 'Password reset successful. You can now sign in.');
+      setSuccessMessage(data.message || 'Password reset successful. You can now sign in with your new password.');
+      setIsReset(true);
+      
+      // Navigate to login page after 3 seconds
+      setTimeout(() => {
+        router.push('/login');
+      }, 3000);
     } catch (err) {
       setError('Network error. Please try again.');
       console.error('Reset password error:', err);
@@ -65,6 +73,14 @@ function ResetPasswordContent(){
   return (
 <div className="min-h-screen bg-surface-secondary flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
 <div className="w-full max-w-md">
+{isReset ? (
+  <AuthSuccess
+    title="Password Reset Successfully!"
+    message={successMessage}
+    redirectUrl="/login"
+    redirectText="Go to login now"
+  />
+) : (
 <AuthCard title="Choose a new password" footer={<>
 Remembered your password? <Link className="transition-colors text-brand hover:underline" href="/login">Back to sign in</Link>
 </>}>
@@ -72,11 +88,6 @@ Remembered your password? <Link className="transition-colors text-brand hover:un
 {error && (
   <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-md text-sm">
     {error}
-  </div>
-)}
-{success && (
-  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-md text-sm">
-    {success}
   </div>
 )}
 <div>
@@ -99,12 +110,11 @@ Remembered your password? <Link className="transition-colors text-brand hover:un
 </button>
 </form>
 </AuthCard>
+)}
 </div>
 </div>
-);
-}
-
-export default function ResetPasswordPage(){
+  );
+}export default function ResetPasswordPage(){
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-secondary text-sm">Loading…</div>}>
       <ResetPasswordContent />

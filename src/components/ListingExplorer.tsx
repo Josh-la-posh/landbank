@@ -35,9 +35,10 @@ type Props = {
   initialListings: ListingCard[];
   initialFilters?: Partial<FilterState>;
   showViewAll?: boolean;
+  maxItems?: number;
 };
 
-export default function ListingExplorer({ initialListings, initialFilters, showViewAll = false }: Props){
+export default function ListingExplorer({ initialListings, initialFilters, showViewAll = false, maxItems }: Props){
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -68,17 +69,28 @@ export default function ListingExplorer({ initialListings, initialFilters, showV
       }
     });
     const queryString = params.toString();
-    const newUrl = queryString ? `?${queryString}` : '/';
+    const newUrl = queryString ? `?${queryString}` : window.location.pathname;
     router.replace(newUrl, { scroll: false });
   }, [router]);
 
   const displayedListings = useMemo(() => {
-    if (!filters.query?.trim()) return listings;
-    const query = filters.query.toLowerCase();
-    return listings.filter((listing) =>
-      listing.title.toLowerCase().includes(query) || listing.location.toLowerCase().includes(query)
-    );
-  }, [filters.query, listings]);
+    let filtered = listings;
+    
+    // Apply text search filter
+    if (filters.query?.trim()) {
+      const query = filters.query.toLowerCase();
+      filtered = filtered.filter((listing) =>
+        listing.title.toLowerCase().includes(query) || listing.location.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply max items limit if specified
+    if (maxItems && maxItems > 0) {
+      filtered = filtered.slice(0, maxItems);
+    }
+    
+    return filtered;
+  }, [filters.query, listings, maxItems]);
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = event.target;
@@ -153,18 +165,18 @@ export default function ListingExplorer({ initialListings, initialFilters, showV
   return (
     <section className="py-16 md:py-24 bg-surface-secondary/40">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 flex flex-col gap-2 text-center">
-          <p className="text-sm uppercase tracking-wide text-secondary">Marketplace</p>
-          <h2 className="text-3xl font-semibold text-primary">Filter land that fits your plan</h2>
-          <p className="text-secondary">Tune property type, verification status, and visibility to quickly narrow thousands of listings.</p>
-          {showViewAll && (
+        {showViewAll && (
+          <div className="mb-8 flex flex-col gap-2 text-center">
+            {/* <p className="text-sm uppercase tracking-wide text-secondary">Marketplace</p> */}
+            <h2 className="text-3xl font-semibold text-primary">Find land that fits your plan</h2>
+            <p className="text-secondary">Tune property type, verification status, and visibility to quickly narrow thousands of listings.</p>
             <div className="mt-4">
               <Link href="/lands" className="btn btn-primary">
                 View All Listings
               </Link>
             </div>
-          )}
-        </div>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="rounded-3xl border border-border/60 bg-surface p-6 shadow-md space-y-6">
           {/* Primary filters - always visible */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

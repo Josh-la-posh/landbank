@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { authApi } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { Lock, Eye, EyeOff, ShieldCheck, KeyRound } from 'lucide-react';
+import { getAuthToken, clearAuth } from '@/lib/auth';
 
 const changePasswordSchema = z.object({
   oldPassword: z.string().min(1, 'Current password is required'),
@@ -54,8 +55,8 @@ export default function SecurityPage() {
     setSuccess(null);
 
     try {
-      // Get token from localStorage
-      const token = localStorage.getItem('accessToken');
+      // Get token from auth utility
+      const token = getAuthToken();
       if (!token) {
         setError('You must be logged in to change your password');
         return;
@@ -66,7 +67,7 @@ export default function SecurityPage() {
           oldPassword: values.oldPassword,
           newPassword: values.newPassword,
         },
-        `Bearer ${token}`
+        token
       );
 
       if (!data) {
@@ -82,9 +83,9 @@ export default function SecurityPage() {
       setSuccess(data.message || 'Password changed successfully!');
       reset();
 
-      // Optionally redirect to login after a delay
+      // Clear auth data and redirect to login after a delay
       setTimeout(() => {
-        localStorage.removeItem('accessToken');
+        clearAuth();
         router.push('/login');
       }, 3000);
     } catch (err) {

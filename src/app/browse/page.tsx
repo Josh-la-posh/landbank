@@ -49,7 +49,7 @@ export default async function BrowsePage() {
       </section>
 
       {/* Listings Explorer */}
-      <ListingExplorer initialListings={initialListings} />
+      <ListingExplorer initialListings={initialListings} maxItems={90} />
     </main>
   );
 }
